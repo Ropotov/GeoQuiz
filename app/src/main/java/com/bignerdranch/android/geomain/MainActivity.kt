@@ -1,16 +1,18 @@
 package com.bignerdranch.android.geomain
 
-import android.arch.lifecycle.ViewModelProvider
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProviders
 
 
 private const val TAG = "MainActivity"
+private const val KEY_INDEX = "index"
 
 class MainActivity : AppCompatActivity() {
 
@@ -21,21 +23,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prevButton: ImageButton
     private lateinit var questionTextView: TextView
 
-    private val questionBank = listOf(
-        Question(R.string.question_australia, true),
-        Question(R.string.question_oceans, true),
-        Question(R.string.question_mideast, false),
-        Question(R.string.question_africa, false),
-        Question(R.string.question_americas, true),
-        Question(R.string.question_asia, true)
-    )
+    private val quizViewModel: QuizViewModel by lazy {
+        ViewModelProviders.of(this).get(QuizViewModel::class.java)
+    }
 
-    private var currentIndex = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate called")
         setContentView(R.layout.activity_main)
+
+        val currentIndex = savedInstanceState?.getInt(KEY_INDEX, 0) ?: 0
+        quizViewModel.currentIndex = currentIndex
 
 
 
@@ -59,27 +58,26 @@ class MainActivity : AppCompatActivity() {
 
         }
         nextButton.setOnClickListener {
-            if (currentIndex < (questionBank.size - 1)) {
-                currentIndex = (currentIndex + 1) % questionBank.size
+                quizViewModel.moveToNext()
                 updateQuestion()
                 trueButton.isClickable = true
                 falseButton.isClickable = true
 
             }
 
-        }
-        prevButton.setOnClickListener {
-            if (currentIndex > 0) {
-                currentIndex = (currentIndex - 1) % questionBank.size
-                updateQuestion()
 
-            }
-        }
-        questionTextView.setOnClickListener {
-            currentIndex = (currentIndex + 1) % questionBank.size
-            updateQuestion()
-
-        }
+//        prevButton.setOnClickListener {
+//            if (currentIndex > 0) {
+//                currentIndex = (currentIndex - 1) % questionBank.size
+//                updateQuestion()
+//
+//            }
+//        }
+//        questionTextView.setOnClickListener {
+//            currentIndex = (currentIndex + 1) % questionBank.size
+//            updateQuestion()
+//
+//        }
         updateQuestion()
     }
 
@@ -98,6 +96,12 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "onPause called")
     }
 
+    override fun onSaveInstanceState(savedInstanceState: Bundle) {
+        super.onSaveInstanceState(savedInstanceState)
+        Log.i(TAG, "savedInstanceState")
+        savedInstanceState.putInt(KEY_INDEX, quizViewModel.currentIndex)
+    }
+
     override fun onStop() {
         super.onStop()
         Log.d(TAG, "onStop called")
@@ -109,12 +113,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateQuestion() {
-        val questionTextResId = questionBank[currentIndex].textResId
+        val questionTextResId = quizViewModel.currentQuestionText
         questionTextView.setText(questionTextResId)
     }
 
     private fun checkAnswer(userAnswer: Boolean) {
-        val correctAnswer = questionBank[currentIndex].answer
+        val correctAnswer = quizViewModel.currentQuestionAnswer
         val messageResId = if (userAnswer == correctAnswer) {
             R.string.correct_toast
         } else {
